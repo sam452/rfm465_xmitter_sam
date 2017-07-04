@@ -46,7 +46,7 @@
 #define IS_RFM69HCW   true // set to 'true' if you are using an RFM69HCW module
 
 //*********************************************************************************************
-#define SERIAL_BAUD   9600 //115200
+#define SERIAL_BAUD   74880 //19200 //9600 //
 
 // for Feather 32u4 Radio
 #define RFM69_CS      8
@@ -138,7 +138,7 @@ void loop() {
 
   
     radio.receiveDone(); //put radio in RX mode
-    Serial.flush(); //make sure all serial data is clocked out before sleeping the MCU
+    //Serial.flush(); //make sure all serial data is clocked out before sleeping the MCU
  
   }
 }
