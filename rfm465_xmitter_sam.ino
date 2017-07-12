@@ -60,6 +60,10 @@ int16_t packetnum = 0;  // packet counter, we increment per xmission
 
 RFM69 radio = RFM69(RFM69_CS, RFM69_IRQ, IS_RFM69HCW, RFM69_IRQN);
 
+const int numChars = 500;
+char receivedChars[numChars];   // an array to store the received data
+boolean newData = false;
+int myndx = 1;
 void setup() {
   while (!Serial); // wait until serial console is open, remove if not tethered to computer. Delete this line on ESP8266
   Serial.begin(SERIAL_BAUD);
@@ -89,63 +93,79 @@ void setup() {
   Serial.println(" MHz");
 }
 
-
-
-    //char incomingByte[256];   // for incoming serial data
-    //char inChar; // Where to store the character read
-    //byte index = 0;
-    //uint8_t buffLen = 256;
-
     
 void loop() {
-  if(Serial1.available() > 0)
-  {
-    while (Serial1.available() > 0)
-    {
-    //char radiopacket[20] = "Hello World #";
-//    itoa(packetnum++, radiopacket+13, 10);
-//    Serial.print("Sending "); Serial.println(radiopacket);
-
-  //if byte is available from Serial1, read the byte.
-  //Send byte
-
-
-      char charFromSerial1 = Serial1.read();
-      radio.sendWithRetry(RECEIVER, &charFromSerial1, 1);
-      Serial.write(charFromSerial1);
-
-
-//  if(index < 256)
-//  {
-//      inChar = Serial1.read();
-//      incomingByte[index] = inChar;
-//      index++;
-//      incomingByte[index] = '\0';
-//
-//            //change from radiopacket to mystring
-//      //Serial.print(incomingByte);
-//      
-//    if (radio.sendWithRetry(RECEIVER, incomingByte, buffLen)) { //target node Id, message as string or byte array, message length
-//      Serial.println("OK");
-//      Serial.print("incomingData: [");
-//      Serial.print(incomingByte);
-//      Serial.println("]");
-//      Serial.println('\n');
-//      Blink(LED, 50, 3); //blink LED 3 times, 50ms between blinks
-//    }
-//  }
-
-
   
-    radio.receiveDone(); //put radio in RX mode
-    //Serial.flush(); //make sure all serial data is clocked out before sleeping the MCU
- 
-  }
-}
+  //recvWithEndMarker();
+  recvWithStartEndMarkers();
+  showNewData();
+  radio.receiveDone(); //put radio in RX mode
 }
     
+void recvWithEndMarker() {
+    static int ndx = 0;
+    char endMarker = '\n';
+    char rc;
     
+    while (Serial1.available() > 0 && newData == false) {
+        rc = Serial1.read();
+
+        if (rc != endMarker) {
+            receivedChars[ndx] = rc;
+            ndx++;
+            if (ndx >= numChars) {
+                ndx = numChars - 1;
+                myndx = ndx;
+            }
+        }
+        else {
+            receivedChars[ndx] = '\0'; // terminate the string
+            ndx = 0;
+            newData = true;
+        }
+    }
+}
+
+void showNewData() {
+    if (newData == true) {
+        radio.sendWithRetry(RECEIVER, receivedChars, numChars);
+        Serial.println(receivedChars);
+        newData = false;
+    }
+}   
  
+void recvWithStartEndMarkers() {
+    static boolean recvInProgress = false;
+    static int ndx = 0;
+    char startMarker = '<';
+    char endMarker = '>';
+    char rc;
+ 
+    while (Serial1.available() > 0 && newData == false) {
+        rc = Serial1.read();
+
+        if (recvInProgress == true) {
+            if (rc != endMarker) {
+                receivedChars[ndx] = rc;
+                ndx++;
+                if (ndx >= numChars) {
+                    ndx = numChars - 1;
+                }
+            }
+            else {
+                receivedChars[ndx] = '\0'; // terminate the string
+                recvInProgress = false;
+                ndx = 0;
+                newData = true;
+            }
+        }
+
+        else if (rc == startMarker) {
+            recvInProgress = true;
+        }
+    }
+}
+
 
 
 void Blink(byte PIN, byte DELAY_MS, byte loops)
