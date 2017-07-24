@@ -64,6 +64,10 @@ const int numChars = 500;
 char receivedChars[numChars];   // an array to store the received data
 boolean newData = false;
 int myndx = 1;
+
+#define DATA_LENGTH 75
+#define CHUNK_LENGTH 50
+
 void setup() {
   while (!Serial); // wait until serial console is open, remove if not tethered to computer. Delete this line on ESP8266
   Serial.begin(SERIAL_BAUD);
@@ -102,29 +106,6 @@ void loop() {
   radio.receiveDone(); //put radio in RX mode
 }
     
-void recvWithEndMarker() {
-    static int ndx = 0;
-    char endMarker = '\n';
-    char rc;
-    
-    while (Serial1.available() > 0 && newData == false) {
-        rc = Serial1.read();
-
-        if (rc != endMarker) {
-            receivedChars[ndx] = rc;
-            ndx++;
-            if (ndx >= numChars) {
-                ndx = numChars - 1;
-                myndx = ndx;
-            }
-        }
-        else {
-            receivedChars[ndx] = '\0'; // terminate the string
-            ndx = 0;
-            newData = true;
-        }
-    }
-}
 
 void showNewData() {
     if (newData == true) {
@@ -165,7 +146,6 @@ void recvWithStartEndMarkers() {
         }
     }
 }
-
 
 
 void Blink(byte PIN, byte DELAY_MS, byte loops)
